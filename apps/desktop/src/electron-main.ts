@@ -43,11 +43,11 @@ import ProtocolHandler from "./protocol.js";
 import { _t, AppLocalization } from "./language-helper.js";
 import { setDisplayMediaCallback } from "./displayMediaCallback.js";
 import { setupMacosTitleBar } from "./macos-titlebar.js";
-import { type Json, loadJsonFile } from "./utils.js";
 import { setupMediaAuth } from "./media-auth.js";
 import { getBuildConfig } from "./build-config.js";
 import { getAsarPath } from "./asar.js";
 import { getIconPath } from "./icon.js";
+import { type ConfigOptions, loadConfig } from "./config.js";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
@@ -77,7 +77,6 @@ if (argv["help"]) {
 }
 
 const LocalConfigLocation = process.env.ELEMENT_DESKTOP_CONFIG_JSON ?? argv["config"];
-const LocalConfigFilename = "config.json";
 
 // Electron creates the user data directory (with just an empty 'Dictionaries' directory...)
 // as soon as the app path is set, so pick a random path in it that must exist if it's a
@@ -120,94 +119,10 @@ if (userDataPathInProtocol) {
 }
 app.setPath("userData", userDataPath);
 
-const homeserverProps = ["default_is_url", "default_hs_url", "default_server_name", "default_server_config"] as const;
-
-function loadLocalConfigFile(): Json {
-    if (LocalConfigLocation) {
-        console.log("Loading local config: " + LocalConfigLocation);
-        return loadJsonFile(LocalConfigLocation);
-    } else {
-        const configDir = app.getPath("userData");
-        console.log(`Loading local config: ${path.join(configDir, LocalConfigFilename)}`);
-        return loadJsonFile(configDir, LocalConfigFilename);
-    }
-}
-
-let loadConfigPromise: Promise<void> | undefined;
-// Loads the config from asar, and applies a config.json from userData atop if one exists
-// Writes config to `global.vectorConfig`. Idempotent, returns the same promise on subsequent calls.
-function loadConfig(): Promise<void> {
-    if (loadConfigPromise) return loadConfigPromise;
-
-    async function actuallyLoadConfig(): Promise<void> {
-        const asarPath = await getAsarPath();
-
-        try {
-            console.log(`Loading app config: ${path.join(asarPath, LocalConfigFilename)}`);
-            global.vectorConfig = loadJsonFile(asarPath, LocalConfigFilename);
-        } catch {
-            // it would be nice to check the error code here and bail if the config
-            // is unparsable, but we get MODULE_NOT_FOUND in the case of a missing
-            // file or invalid json, so node is just very unhelpful.
-            // Continue with the defaults (ie. an empty config)
-            global.vectorConfig = {};
-        }
-
-        try {
-            // Load local config and use it to override values from the one baked with the build
-            const localConfig = loadLocalConfigFile();
-
-            // If the local config has a homeserver defined, don't use the homeserver from the build
-            // config. This is to avoid a problem where Riot thinks there are multiple homeservers
-            // defined, and panics as a result.
-            if (Object.keys(localConfig).find((k) => homeserverProps.includes(<any>k))) {
-                // Rip out all the homeserver options from the vector config
-                global.vectorConfig = Object.keys(global.vectorConfig)
-                    .filter((k) => !homeserverProps.includes(<any>k))
-                    .reduce(
-                        (obj, key) => {
-                            obj[key] = global.vectorConfig[key];
-                            return obj;
-                        },
-                        {} as Omit<Partial<(typeof global)["vectorConfig"]>, keyof typeof homeserverProps>,
-                    );
-            }
-
-            global.vectorConfig = Object.assign(global.vectorConfig, localConfig);
-        } catch (e) {
-            if (e instanceof SyntaxError) {
-                await app.whenReady();
-                void dialog.showMessageBox({
-                    type: "error",
-                    title: `Your ${global.vectorConfig.brand || "Element"} is misconfigured`,
-                    message:
-                        `Your custom ${global.vectorConfig.brand || "Element"} configuration contains invalid JSON. ` +
-                        `Please correct the problem and reopen ${global.vectorConfig.brand || "Element"}.`,
-                    detail: e.message || "",
-                });
-            }
-
-            // Could not load local config, this is expected in most cases.
-        }
-
-        // Tweak modules paths as they assume the root is at the same level as webapp, but for `vector://vector/webapp` it is not.
-        if (Array.isArray(global.vectorConfig.modules)) {
-            global.vectorConfig.modules = global.vectorConfig.modules.map((m) => {
-                if (m.startsWith("/")) {
-                    return "/webapp" + m;
-                }
-                return m;
-            });
-        }
-    }
-    loadConfigPromise = actuallyLoadConfig();
-    return loadConfigPromise;
-}
-
 // Configure Electron Sentry and crashReporter using sentry.dsn in config.json if one is present.
 async function configureSentry(): Promise<void> {
-    await loadConfig();
-    const { dsn, environment } = global.vectorConfig.sentry || {};
+    const config = await loadConfig(LocalConfigLocation);
+    const { dsn, environment } = config.sentry || {};
     if (dsn) {
         console.log(`Enabling Sentry with dsn=${dsn} environment=${environment}`);
         Sentry.init({
@@ -296,10 +211,11 @@ app.on("ready", async () => {
     console.debug("Reached Electron ready state");
 
     let asarPath: string;
+    let config: ConfigOptions;
 
     try {
         asarPath = await getAsarPath();
-        await loadConfig();
+        config = await loadConfig(LocalConfigLocation);
     } catch (e) {
         console.log("App setup failed: exiting", e);
         process.exit(1);
@@ -376,8 +292,8 @@ app.on("ready", async () => {
     // Minimist parses `--no-`-prefixed arguments as booleans with value `false` rather than verbatim.
     if (argv["update"] === false) {
         console.log("Auto update disabled via command line flag");
-    } else if (global.vectorConfig["update_base_url"]) {
-        void updater.start(global.vectorConfig["update_base_url"]);
+    } else if (config.update_base_url) {
+        void updater.start(config.update_base_url);
     } else {
         console.log("No update_base_url is defined: auto update is disabled");
     }
@@ -474,7 +390,7 @@ app.on("ready", async () => {
                     buttons: [
                         _t("action|cancel"),
                         _t("action|close_brand", {
-                            brand: global.vectorConfig.brand || "Element",
+                            brand: config.brand,
                         }),
                     ],
                     message: _t("confirm_quit"),
