@@ -45,6 +45,7 @@ interface IState {
     timezones: string[];
     timezoneSearch: string | undefined;
     autocompleteDelay: string;
+    giphyApiKey: string;
     readMarkerInViewThresholdMs: string;
     readMarkerOutOfViewThresholdMs: string;
 }
@@ -136,6 +137,7 @@ export default class PreferencesUserSettingsTab extends React.Component<IProps, 
         "MessageComposerInput.ctrlEnterToSend",
         "MessageComposerInput.surroundWith",
         "MessageComposerInput.showStickersButton",
+        "MessageComposerInput.showGifButton",
         "MessageComposerInput.insertTrailingColon",
     ];
 
@@ -179,6 +181,7 @@ export default class PreferencesUserSettingsTab extends React.Component<IProps, 
             timezones: TimezoneHandler.getAllTimezones(),
             timezoneSearch: undefined,
             autocompleteDelay: SettingsStore.getValueAt(SettingLevel.DEVICE, "autocompleteDelay").toString(10),
+            giphyApiKey: SettingsStore.getValueAt(SettingLevel.DEVICE, "giphyApiKey").toString(),
             readMarkerInViewThresholdMs: SettingsStore.getValueAt(
                 SettingLevel.DEVICE,
                 "readMarkerInViewThresholdMs",
@@ -212,6 +215,11 @@ export default class PreferencesUserSettingsTab extends React.Component<IProps, 
     private onAutocompleteDelayChange = (e: React.ChangeEvent<HTMLInputElement>): void => {
         this.setState({ autocompleteDelay: e.target.value });
         SettingsStore.setValue("autocompleteDelay", null, SettingLevel.DEVICE, e.target.valueAsNumber);
+    };
+
+    private onGiphyApiKeyChange = (e: React.ChangeEvent<HTMLInputElement>): void => {
+        this.setState({ giphyApiKey: e.target.value });
+        SettingsStore.setValue("giphyApiKey", null, SettingLevel.DEVICE, e.target.value);
     };
 
     private onReadMarkerInViewThresholdMs = (e: React.ChangeEvent<HTMLInputElement>): void => {
@@ -340,6 +348,19 @@ export default class PreferencesUserSettingsTab extends React.Component<IProps, 
 
                     <SettingsSubsection heading={_t("settings|preferences|composer_heading")} formWrap>
                         {this.renderGroup(PreferencesUserSettingsTab.COMPOSER_SETTINGS)}
+                    </SettingsSubsection>
+
+                    <SettingsSubsection
+                        heading={_t("settings|integrations|section_title")}
+                        description={_t("settings|integrations|giphy_description")}
+                        formWrap
+                    >
+                        <Field
+                            label={_t("settings|integrations|giphy_api_key")}
+                            type="string"
+                            value={this.state.giphyApiKey}
+                            onChange={this.onGiphyApiKeyChange}
+                        />
                     </SettingsSubsection>
 
                     <SettingsSubsection heading={_t("settings|preferences|code_blocks_heading")} formWrap>

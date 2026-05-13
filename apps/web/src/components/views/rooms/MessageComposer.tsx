@@ -22,6 +22,11 @@ import { LockOffIcon, SendSolidIcon } from "@vector-im/compound-design-tokens/as
 
 import { _t } from "../../../languageHandler";
 import { MatrixClientPeg } from "../../../MatrixClientPeg";
+import ContentMessages from "../../../ContentMessages";
+import Modal from "../../../Modal";
+import ErrorDialog from "../dialogs/ErrorDialog";
+import GifSearchDialog from "../dialogs/GifSearchDialog";
+import type { Gif } from "../../../utils/giphy/GiphyTypes";
 import dis from "../../../dispatcher/dispatcher";
 import { type ActionPayload } from "../../../dispatcher/payloads";
 import Stickerpicker from "./Stickerpicker";
@@ -96,7 +101,9 @@ interface IState {
     me?: RoomMember;
     isMenuOpen: boolean;
     isStickerPickerOpen: boolean;
+    isGifPickerOpen: boolean;
     showStickersButton: boolean;
+    showGifButton: boolean;
     showPollsButton: boolean;
     isWysiwygLabEnabled: boolean;
     isRichTextEnabled: boolean;
@@ -147,7 +154,9 @@ export class MessageComposer extends React.Component<IProps, IState> {
             recordingTimeLeftSeconds: undefined, // when set to a number, shows a toast
             isMenuOpen: false,
             isStickerPickerOpen: false,
+            isGifPickerOpen: false,
             showStickersButton: SettingsStore.getValue("MessageComposerInput.showStickersButton"),
+            showGifButton: SettingsStore.getValue("MessageComposerInput.showGifButton"),
             showPollsButton: SettingsStore.getValue("MessageComposerInput.showPollsButton"),
             isWysiwygLabEnabled: isWysiwygLabEnabled,
             isRichTextEnabled: isRichTextEnabled,
@@ -242,6 +251,7 @@ export class MessageComposer extends React.Component<IProps, IState> {
         }
 
         SettingsStore.monitorSetting("MessageComposerInput.showStickersButton", null);
+        SettingsStore.monitorSetting("MessageComposerInput.showGifButton", null);
         SettingsStore.monitorSetting("MessageComposerInput.showPollsButton", null);
         SettingsStore.monitorSetting("feature_wysiwyg_composer", null);
 
@@ -283,6 +293,13 @@ export class MessageComposer extends React.Component<IProps, IState> {
                         const showStickersButton = SettingsStore.getValue("MessageComposerInput.showStickersButton");
                         if (this.state.showStickersButton !== showStickersButton) {
                             this.setState({ showStickersButton });
+                        }
+                        break;
+                    }
+                    case "MessageComposerInput.showGifButton": {
+                        const showGifButton = SettingsStore.getValue("MessageComposerInput.showGifButton");
+                        if (this.state.showGifButton !== showGifButton) {
+                            this.setState({ showGifButton });
                         }
                         break;
                     }
@@ -485,8 +502,51 @@ export class MessageComposer extends React.Component<IProps, IState> {
         });
     };
 
+    private setGifPickerOpen = (isGifPickerOpen: boolean): void => {
+        this.setState({
+            isGifPickerOpen,
+            isMenuOpen: false,
+        });
+    };
+
+    private onGifSelected = async (gif: Gif | null): Promise<void> => {
+        this.setState({ isGifPickerOpen: false });
+
+        if (!gif) return;
+
+        try {
+            // Download GIF from GIPHY CDN
+            const response = await fetch(gif.images.downsized.url);
+            if (!response.ok) {
+                throw new Error(`Failed to download GIF: ${response.statusText}`);
+            }
+
+            const blob = await response.blob();
+            const file = new File([blob], `${gif.id}.gif`, { type: "image/gif" });
+
+            // Send as message using existing ContentMessages infrastructure
+            await ContentMessages.sharedInstance().sendContentToRoom(
+                file,
+                this.props.room.roomId,
+                this.props.relation,
+                this.props.mxClient,
+                undefined, // replyToEvent
+            );
+        } catch (error) {
+            logger.error("Failed to send GIF:", error);
+            Modal.createDialog(ErrorDialog, {
+                title: _t("common|error"),
+                description: _t("gif_search|download_error"),
+            });
+        }
+    };
+
     private toggleStickerPickerOpen = (): void => {
         this.setStickerPickerOpen(!this.state.isStickerPickerOpen);
+    };
+
+    private toggleGifPickerOpen = (): void => {
+        this.setGifPickerOpen(!this.state.isGifPickerOpen);
     };
 
     private toggleButtonMenu = (): void => {
@@ -497,6 +557,11 @@ export class MessageComposer extends React.Component<IProps, IState> {
 
     private get showStickersButton(): boolean {
         return this.state.showStickersButton && !isLocalRoom(this.props.room);
+    }
+
+    private get showGifButton(): boolean {
+        const hasApiKey = !!SettingsStore.getValue("giphyApiKey");
+        return this.state.showGifButton && !isLocalRoom(this.props.room) && hasApiKey;
     }
 
     private getMenuPosition(): MenuProps | undefined {
@@ -663,6 +728,16 @@ export class MessageComposer extends React.Component<IProps, IState> {
             />,
         );
 
+        controls.push(
+            <GifSearchDialog
+                onFinished={this.onGifSelected}
+                roomId={this.props.room.roomId}
+                isOpen={this.state.isGifPickerOpen}
+                menuPosition={menuPosition}
+                key="gif"
+            />,
+        );
+
         const showSendButton = canSendMessages && (!this.state.isComposerEmpty || this.state.haveRecording);
 
         const classes = classNames({
@@ -691,15 +766,18 @@ export class MessageComposer extends React.Component<IProps, IState> {
                                     haveRecording={this.state.haveRecording}
                                     isMenuOpen={this.state.isMenuOpen}
                                     isStickerPickerOpen={this.state.isStickerPickerOpen}
+                                    isGifPickerOpen={this.state.isGifPickerOpen}
                                     menuPosition={menuPosition}
                                     relation={this.props.relation}
                                     onRecordStartEndClick={this.onRecordStartEndClick}
                                     setStickerPickerOpen={this.setStickerPickerOpen}
+                                    setGifPickerOpen={this.setGifPickerOpen}
                                     showLocationButton={
                                         !window.electron && SettingsStore.getValue(UIFeature.LocationSharing)
                                     }
                                     showPollsButton={this.state.showPollsButton}
                                     showStickersButton={this.showStickersButton}
+                                    showGifButton={this.showGifButton}
                                     isRichTextEnabled={this.state.isRichTextEnabled}
                                     onComposerModeClick={this.onRichTextToggle}
                                     toggleButtonMenu={this.toggleButtonMenu}

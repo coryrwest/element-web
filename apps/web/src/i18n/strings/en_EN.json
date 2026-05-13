@@ -566,6 +566,7 @@
         "state_encryption_enabled": "Experimental state encryption enabled",
         "sticker": "Sticker",
         "stickerpack": "Stickerpack",
+        "gif": "GIF",
         "success": "Success",
         "suggestions": "Suggestions",
         "support": "Support",
@@ -605,6 +606,7 @@
             "user_description": "Users"
         },
         "close_sticker_picker": "Hide stickers",
+        "close_gif_picker": "Hide GIFs",
         "edit_composer_label": "Edit message",
         "format_bold": "Bold",
         "format_code_block": "Code block",
@@ -2863,6 +2865,7 @@
             "room_list_heading": "Room list",
             "show_avatars_pills": "Show avatars in user, room and event mentions",
             "show_polls_button": "Show polls button",
+            "show_gif_button": "Show GIF button",
             "startup_window_behaviour_label": "Start-up and window behaviour",
             "surround_text": "Surround selected text when typing special characters",
             "time_heading": "Displaying time",
@@ -3021,6 +3024,13 @@
         "show_redaction_placeholder": "Show a placeholder for removed messages",
         "show_stickers_button": "Show stickers button",
         "show_typing_notifications": "Show typing notifications",
+        "integrations": {
+            "giphy_api_key": "GIPHY API Key",
+            "giphy_api_key_description": "Enter your GIPHY API key to search and send GIFs. Get your key at https://developers.giphy.com/",
+            "giphy_button_enabled": "Show GIF button",
+            "giphy_description": "Search and send GIFs using GIPHY",
+            "section_title": "Integrations"
+        },
         "showbold": "Show all activity in the room list (dots or number of unread messages)",
         "sidebar": {
             "dialog_title": "<strong>Settings:</strong> Sidebar",
@@ -3824,6 +3834,16 @@
             "one": "Upload %(count)s other file",
             "other": "Upload %(count)s other files"
         }
+    },
+    "gif_search": {
+        "api_key_missing": "GIPHY API key not configured in settings",
+        "download_error": "Failed to download and send GIF. Please try again.",
+        "error": "Failed to search GIFs. Please try again.",
+        "invalid_api_key": "Invalid GIPHY API key. Please check your settings.",
+        "no_results": "No GIFs found for this search.",
+        "placeholder": "Search GIFs...",
+        "timeout": "Request timeout. Please try again.",
+        "title": "Search GIFs"
     },
     "user_info": {
         "admin_tools_section": "Admin Tools",

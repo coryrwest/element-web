@@ -785,6 +785,7 @@ export default (env: string, argv: Record<string, any>): webpack.Configuration =
 
         // configuration for the webpack-dev-server
         devServer: {
+            https: true,
             client: {
                 overlay: {
                     // Only show overlay on build errors as anything more can get annoying quickly

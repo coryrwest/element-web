@@ -50,6 +50,7 @@ import { type Assignable } from "../@types/common.ts";
 import { SortingAlgorithm } from "../stores/room-list-v3/skip-list/sorters/index.ts";
 import MediaPreviewConfigController from "./controllers/MediaPreviewConfigController.ts";
 import InviteRulesConfigController from "./controllers/InviteRulesConfigController.ts";
+import GiphyApiKeyController from "./controllers/GiphyApiKeyController";
 import { type ComputedInviteConfig } from "../@types/invite-rules.ts";
 import BlockInvitesConfigController from "./controllers/BlockInvitesConfigController.ts";
 import RequiresSettingsController from "./controllers/RequiresSettingsController.ts";
@@ -246,6 +247,8 @@ export interface Settings {
     "MessageComposerInput.suggestEmoji": IBaseSetting<boolean>;
     "MessageComposerInput.showStickersButton": IBaseSetting<boolean>;
     "MessageComposerInput.showPollsButton": IBaseSetting<boolean>;
+    "MessageComposerInput.showGifButton": IBaseSetting<boolean>;
+    "giphyApiKey": IBaseSetting<string>;
     "MessageComposerInput.insertTrailingColon": IBaseSetting<boolean>;
     "Notifications.alwaysShowBadgeCounts": IBaseSetting<boolean>;
     "Notifications.showbold": IBaseSetting<boolean>;
@@ -727,6 +730,18 @@ export const SETTINGS: Settings = {
         supportedLevels: LEVELS_ACCOUNT_SETTINGS,
         displayName: _td("settings|preferences|show_polls_button"),
         default: true,
+    },
+    "MessageComposerInput.showGifButton": {
+        supportedLevels: LEVELS_ACCOUNT_SETTINGS,
+        displayName: _td("settings|integrations|giphy_button_enabled"),
+        default: true,
+    },
+    "giphyApiKey": {
+        supportedLevels: LEVELS_DEVICE_ONLY_SETTINGS,
+        displayName: _td("settings|integrations|giphy_api_key"),
+        description: _td("settings|integrations|giphy_api_key_description"),
+        default: "",
+        controller: new GiphyApiKeyController(),
     },
     "MessageComposerInput.insertTrailingColon": {
         supportedLevels: LEVELS_ACCOUNT_SETTINGS,

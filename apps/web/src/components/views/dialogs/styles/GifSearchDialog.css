@@ -1,0 +1,95 @@
+/*
+Copyright 2024 New Vector Ltd.
+
+SPDX-License-Identifier: AGPL-3.0-only OR GPL-3.0-only OR LicenseRef-Element-Commercial
+Please see LICENSE files in the repository root for full details.
+*/
+
+.mx_GifSearchDialog {
+    width: 400px;
+    max-height: 600px;
+}
+
+.mx_GifSearchDialog_content {
+    padding: 16px;
+}
+
+.mx_GifSearchDialog_noApiKey {
+    padding: 32px 16px;
+    text-align: center;
+    color: var(--text-secondary-color);
+    font-size: var(--font-14px);
+    line-height: 1.5;
+}
+
+.mx_GifSearchDialog_results {
+    max-height: 400px;
+    overflow-y: auto;
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+    gap: 8px;
+    margin-top: 16px;
+    padding: 4px;
+}
+
+.mx_GifSearchDialog_item {
+    cursor: pointer;
+    border-radius: 8px;
+    overflow: hidden;
+    transition: transform 0.2s, box-shadow 0.2s;
+    background: var(--bg-tertiary-color);
+    border: 1px solid transparent;
+}
+
+.mx_GifSearchDialog_item:hover {
+    transform: scale(1.05);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    border-color: var(--accent-color);
+}
+
+.mx_GifSearchDialog_item img {
+    width: 100%;
+    height: auto;
+    display: block;
+    object-fit: cover;
+}
+
+.mx_GifSearchDialog_error,
+.mx_GifSearchDialog_noResults {
+    padding: 16px;
+    text-align: center;
+    color: var(--text-secondary-color);
+    font-size: var(--font-14px);
+    line-height: 1.5;
+    margin-top: 16px;
+}
+
+.mx_GifSearchDialog_error {
+    color: var(--text-error-color);
+    background: var(--bg-error-color);
+    border-radius: 4px;
+}
+
+.mx_GifSearchDialog_loadMore {
+    width: 100%;
+    padding: 12px;
+    margin-top: 16px;
+    background: var(--bg-tertiary-color);
+    border: 1px solid var(--bg-quaternary-color);
+    border-radius: 8px;
+    cursor: pointer;
+    color: var(--text-primary-color);
+    font-size: var(--font-14px);
+    font-weight: var(--font-bold);
+    transition: background 0.2s, border-color 0.2s;
+}
+
+.mx_GifSearchDialog_loadMore:hover {
+    background: var(--bg-quaternary-color);
+    border-color: var(--accent-color);
+}
+
+.mx_GifSearchDialog_loadMore:active {
+    background: var(--bg-quaternary-color);
+    transform: translateY(1px);
+}

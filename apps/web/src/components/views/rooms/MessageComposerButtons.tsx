@@ -22,6 +22,7 @@ import {
     PollsIcon,
     StickerIcon,
     TextFormattingIcon,
+    ImageIcon,
 } from "@vector-im/compound-design-tokens/assets/web/icons";
 
 import { _t } from "../../../languageHandler";
@@ -56,6 +57,9 @@ interface IProps {
     showLocationButton: boolean;
     showPollsButton: boolean;
     showStickersButton: boolean;
+    showGifButton: boolean;
+    setGifPickerOpen: (isGifPickerOpen: boolean) => void;
+    isGifPickerOpen: boolean;
     toggleButtonMenu: () => void;
     isRichTextEnabled: boolean;
     onComposerModeClick: () => void;
@@ -91,6 +95,7 @@ const MessageComposerButtons: React.FC<IProps> = (props: IProps) => {
         moreButtons = [
             uploadButton(), // props passed via UploadButtonContext
             showStickersButton(props),
+            showGifButton(props),
             voiceRecordingButton(props, narrow),
             props.showPollsButton ? pollButton(room, props.relation) : null,
             showLocationButton(props, room, matrixClient),
@@ -110,6 +115,7 @@ const MessageComposerButtons: React.FC<IProps> = (props: IProps) => {
         ];
         moreButtons = [
             showStickersButton(props),
+            showGifButton(props),
             voiceRecordingButton(props, narrow),
             props.showPollsButton ? pollButton(room, props.relation) : null,
             showLocationButton(props, room, matrixClient),
@@ -261,6 +267,20 @@ function showStickersButton(props: IProps): ReactElement | null {
             title={props.isStickerPickerOpen ? _t("composer|close_sticker_picker") : _t("common|sticker")}
         >
             <StickerIcon />
+        </CollapsibleButton>
+    ) : null;
+}
+
+function showGifButton(props: IProps): ReactElement | null {
+    return props.showGifButton ? (
+        <CollapsibleButton
+            id="gifButton"
+            key="controls_gif"
+            className="mx_MessageComposer_button"
+            onClick={() => props.setGifPickerOpen(!props.isGifPickerOpen)}
+            title={props.isGifPickerOpen ? _t("composer|close_gif_picker") : _t("common|gif")}
+        >
+            <ImageIcon />
         </CollapsibleButton>
     ) : null;
 }

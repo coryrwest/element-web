@@ -1,0 +1,244 @@
+name: Build Desktop (Unverified)
+on:
+    workflow_dispatch:
+        inputs:
+            linux:
+                description: "Build Linux"
+                required: true
+                type: boolean
+                default: true
+            windows:
+                description: "Build Windows"
+                required: true
+                type: boolean
+                default: true
+permissions:
+    contents: read
+run-name: Unverified Build (from source)
+jobs:
+    prepare:
+        name: Prepare
+        runs-on: ubuntu-24.04
+        steps:
+            - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
+              with:
+                  persist-credentials: false
+
+            - uses: pnpm/action-setup@fc06bc1257f339d1d5d8b3a19a8cae5388b55320 # v5
+            - uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6
+              with:
+                  node-version-file: apps/desktop/.node-version
+                  cache: "pnpm"
+
+            - name: Install all deps
+              run: pnpm install --frozen-lockfile
+
+            - name: Build Element Web
+              run: |
+                  pnpm -C apps/web run prebuild:module_system
+                  pnpm -C apps/web run prebuild:rethemendex
+                  pnpm -C apps/web run build
+              env:
+                  CI_PACKAGE: "1"
+
+            - name: Package webapp.asar
+              working-directory: apps/desktop
+              run: |
+                  mkdir -p webapp
+                  cp -r ../../apps/web/webapp/* webapp/
+                  cp -f element.io/release/config.json webapp/config.json
+                  pnpm run asar-webapp
+
+            - name: Copy variant config
+              working-directory: apps/desktop
+              run: cp element.io/release/build.json variant.json
+
+            - name: Generate cache hash files
+              working-directory: apps/desktop
+              run: |
+                  set -ex
+                  pnpm --silent electron --no-sandbox --version > electronVersion
+                  cat package.json | jq -c .hakDependencies | sha1sum > hakHash
+                  find hak -type f -print0 | xargs -0 sha1sum >> hakHash
+                  find scripts/hak -type f -print0 | xargs -0 sha1sum >> hakHash
+
+            - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+              with:
+                  name: desktop-prepare
+                  retention-days: 7
+                  path: |
+                      apps/desktop/webapp.asar
+                      apps/desktop/electronVersion
+                      apps/desktop/hakHash
+                      apps/desktop/variant.json
+
+    linux:
+        if: inputs.linux
+        needs: prepare
+        name: Linux amd64
+        runs-on: ubuntu-22.04
+        env:
+            SQLCIPHER_BUNDLED: "1"
+        steps:
+            - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
+              with:
+                  persist-credentials: false
+
+            - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8
+              with:
+                  name: desktop-prepare
+                  path: apps/desktop
+
+            - name: Cache .hak
+              id: cache
+              uses: actions/cache@27d5ce7f107fe9357f73ab90386fccae # v5
+              with:
+                  key: ${{ runner.os }}-amd64-static-${{ hashFiles('apps/desktop/hakHash', 'apps/desktop/electronVersion') }}
+                  path: |
+                      apps/desktop/.hak
+
+            - uses: pnpm/action-setup@fc06bc1257f339d1d5d8b3a19a8cae5388b55320 # v5
+            - uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6
+              with:
+                  node-version-file: apps/desktop/.node-version
+                  cache: "pnpm"
+              env:
+                  FORCE_COLOR: 0
+
+            - name: Install Deps
+              working-directory: apps/desktop
+              run: "pnpm install --frozen-lockfile --filter element-desktop"
+
+            - name: Install build dependencies
+              if: steps.cache.outputs.cache-hit != 'true'
+              run: |
+                  sudo apt-get -qq update
+                  sudo apt-get -y -qq install --no-install-recommends tcl libsqlcipher-dev
+
+            - name: Install Rust
+              if: steps.cache.outputs.cache-hit != 'true'
+              run: |
+                  rustup toolchain install stable --profile minimal --no-self-update
+                  rustup default stable
+
+            - name: Build Natives
+              if: steps.cache.outputs.cache-hit != 'true'
+              working-directory: apps/desktop
+              run: pnpm run build:native
+
+            - name: Fix permissions
+              run: |
+                  sudo chown -R $USER:$USER apps/desktop/.hak
+                  sudo chmod +x node_modules/7zip-bin/linux/*/7za
+
+            - name: Build App
+              working-directory: apps/desktop
+              run: pnpm run build --publish never -l tar.gz deb
+              env:
+                  VARIANT_PATH: variant.json
+                  USE_HARD_LINKS: false
+
+            - name: Upload Artifacts
+              uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+              with:
+                  name: linux-amd64
+                  path: |
+                      apps/desktop/dist
+                      !apps/desktop/dist/*-unpacked/**
+                  retention-days: 7
+
+    windows:
+        if: inputs.windows
+        needs: prepare
+        name: Windows x64
+        runs-on: windows-2025
+        defaults:
+            run:
+                shell: powershell
+        steps:
+            - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
+              with:
+                  persist-credentials: false
+
+            - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8
+              with:
+                  name: desktop-prepare
+                  path: apps/desktop
+
+            - name: Cache .hak
+              id: cache
+              uses: actions/cache@27d5ce7f107fe9357f73ab90386fccae # v5
+              with:
+                  key: ${{ runner.os }}-x64-${{ hashFiles('apps/desktop/hakHash', 'apps/desktop/electronVersion') }}
+                  path: |
+                      apps/desktop/.hak
+
+            - name: Choco install tclsh
+              if: steps.cache.outputs.cache-hit != 'true'
+              shell: pwsh
+              run: |
+                  choco install -y magicsplat-tcl-tk --no-progress
+                  echo "${HOME}/AppData/Local/Apps/Tcl86/bin" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
+
+            - name: Choco install NetWide Assembler
+              if: steps.cache.outputs.cache-hit != 'true'
+              shell: pwsh
+              run: |
+                  choco install -y nasm --no-progress
+                  echo "C:/Program Files/NASM" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
+
+            - name: Install Rust
+              if: steps.cache.outputs.cache-hit != 'true'
+              run: |
+                  rustup toolchain install stable --profile minimal --no-self-update
+                  rustup default stable
+                  rustup target add x86_64-pc-windows-msvc
+              env:
+                  TARGET: x86_64-pc-windows-msvc
+
+            - uses: pnpm/action-setup@fc06bc1257f339d1d5d8b3a19a8cae5388b55320 # v5
+            - uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6
+              with:
+                  node-version-file: apps/desktop/.node-version
+                  cache: "pnpm"
+
+            - name: Install Deps
+              working-directory: apps/desktop
+              run: "pnpm install --frozen-lockfile --filter element-desktop"
+
+            - name: Set up build tools
+              if: steps.cache.outputs.cache-hit != 'true'
+              uses: ilammy/msvc-dev-cmd@0b201ec74fa43914dc39ae48a89fd1d8cb592756 # v1.13.0
+              with:
+                  arch: x64
+
+            - name: Build Natives
+              if: steps.cache.outputs.cache-hit != 'true'
+              working-directory: apps/desktop
+              run: |
+                  refreshenv
+                  pnpm run build:native --target x86_64-pc-windows-msvc
+              env:
+                  TARGET: x86_64-pc-windows-msvc
+
+            - name: Build App
+              working-directory: apps/desktop
+              run: pnpm run build --publish never --dir
+              shell: bash
+              env:
+                  VARIANT_PATH: variant.json
+
+            - name: Build Squirrel installer
+              working-directory: apps/desktop
+              run: pnpm run build --publish never -w squirrel
+              shell: bash
+              env:
+                  VARIANT_PATH: variant.json
+
+            - name: Upload Artifacts
+              uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+              with:
+                  name: win-x64
+                  path: |
+                      apps/desktop/dist
+                  retention-days: 7

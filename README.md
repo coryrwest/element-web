@@ -12,6 +12,12 @@
 Element (formerly known as Vector and Riot) is a Matrix web & desktop client built using the [Matrix
 JS SDK](https://github.com/matrix-org/matrix-js-sdk).
 
+# WHY DOES THIS REPO EXIST!?
+Good question, it shouldn't. I have become fed up with the element teams stance (I'm talking about turt2live) toward GIF search. Doing client side search with users providing their own keys is incredibly easy and low effort. turt2live is an idiot that consistently blocks any meaningful discussion on adding GIF search to element for (what I consider) are unjustifiable reasons. So I made this repo as a middle finger to him for being a power hungry butt-head.
+
+# WHY YOU SHOULDN'T USE THIS REPO
+I have disabled all the workflows and app signing requirements as I only intend to use this personally and with my friends. This does not produce builds in the same way that Element does.
+
 # Supported Environments
 
 Element has several tiers of support for different environments:
