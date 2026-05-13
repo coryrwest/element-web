@@ -35,8 +35,6 @@ jobs:
 
             - name: Build Element Web
               run: |
-                  pnpm -C apps/web run prebuild:module_system
-                  pnpm -C apps/web run prebuild:rethemendex
                   pnpm -C apps/web run build
               env:
                   CI_PACKAGE: "1"
