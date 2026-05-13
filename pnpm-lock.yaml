@@ -7857,6 +7857,10 @@ packages:
     engines: {node: '>=0.12.18'}
     hasBin: true
 
+  electron-build-env@0.2.0:
+    resolution: {integrity: sha512-L431TbXtXe6iw3ko7ITr/qCu+jumVKLAhCDyhqfab6421LGlawVcT88Ws/DHR57+1lkLN1POQqwNOkjPwQJQmQ==}
+    hasBin: true
+
   electron-builder-squirrel-windows@26.9.0:
     resolution: {integrity: sha512-Jzsxa3Kjv94ZRZDK7pc8bzu5iglwGsDOBMWTqLpWx2sCEvb3TLW9PMWqOjpDwizqkMBp8GjP6rceLzQYLFIVow==}
 
@@ -20966,6 +20970,11 @@ snapshots:
 
   ejs@5.0.1: {}
 
+  electron-build-env@0.2.0:
+    dependencies:
+      commander: 2.20.3
+      mkdirp: 0.5.6
+
   electron-builder-squirrel-windows@26.9.0(dmg-builder@26.9.0):
     dependencies:
       app-builder-lib: 26.9.0(patch_hash=2dfb3fcdfe573cca6c248cecf63ddea5c8fa0276859695fba6c9664d0ff285d6)(dmg-builder@26.9.0)(electron-builder-squirrel-windows@26.9.0)
@@ -23604,6 +23613,8 @@ snapshots:
       p-retry: 8.0.0
       sdp-transform: 3.0.0
       unhomoglyph: 1.0.6
+
+  matrix-seshat@4.2.0: {}
 
   matrix-web-i18n@3.6.0:
     dependencies:
