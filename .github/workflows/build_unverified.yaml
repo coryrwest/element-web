@@ -17,7 +17,7 @@ permissions:
 run-name: Unverified Build (from source)
 env:
     SQLCIPHER_BUNDLED: ${{ inputs.sqlcipher == 'static' && '1' || '' }}
-    MAX_GLIBC: 2.32
+    MAX_GLIBC: 2.31
 jobs:
     prepare:
         name: Prepare
@@ -80,6 +80,7 @@ jobs:
         runs-on: ubuntu-22.04
         env:
             SQLCIPHER_BUNDLED: "1"
+            MAX_GLIBC: "2.32"
             HAK_DOCKER_IMAGE: ghcr.io/element-hq/element-web/desktop-build-env:develop
         steps:
             - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
@@ -117,6 +118,7 @@ jobs:
                   docker run \
                     -v ${{ github.workspace }}:/work -w /work \
                     -e SQLCIPHER_BUNDLED \
+                    -e MAX_GLIBC=2.32 \
                     -e CI=1 \
                     $HAK_DOCKER_IMAGE \
                     pnpm -C apps/desktop run build:native
