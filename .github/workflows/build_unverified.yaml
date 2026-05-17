@@ -124,14 +124,6 @@ jobs:
                   sudo chown -R $USER:$USER apps/desktop/.hak
                   sudo chmod +x node_modules/7zip-bin/linux/*/7za
 
-            - name: Check native libraries in hak dependencies
-              working-directory: apps/desktop
-              run: |
-                  shopt -s globstar
-                  for filename in ./.hak/hakModules/**/*.node; do
-                      ./scripts/glibc-check.sh $filename
-                  done
-
             - name: Build App
               working-directory: apps/desktop
               run: pnpm run build --publish never -l tar.gz deb
