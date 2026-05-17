@@ -77,6 +77,7 @@ jobs:
         runs-on: ubuntu-22.04
         env:
             SQLCIPHER_BUNDLED: "1"
+            HAK_DOCKER_IMAGE: ghcr.io/element-hq/element-web/desktop-build-env:develop
         steps:
             - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
               with:
@@ -107,27 +108,28 @@ jobs:
               working-directory: apps/desktop
               run: "pnpm install --frozen-lockfile --filter element-desktop"
 
-            - name: Install build dependencies
-              if: steps.cache.outputs.cache-hit != 'true'
-              run: |
-                  sudo apt-get -qq update
-                  sudo apt-get -y -qq install --no-install-recommends tcl libsqlcipher-dev
-
-            - name: Install Rust
-              if: steps.cache.outputs.cache-hit != 'true'
-              run: |
-                  rustup toolchain install stable --profile minimal --no-self-update
-                  rustup default stable
-
             - name: Build Natives
               if: steps.cache.outputs.cache-hit != 'true'
-              working-directory: apps/desktop
-              run: pnpm run build:native
+              run: |
+                  docker run \
+                    -v ${{ github.workspace }}:/work -w /work \
+                    -e SQLCIPHER_BUNDLED \
+                    -e CI=1 \
+                    $HAK_DOCKER_IMAGE \
+                    pnpm -C apps/desktop run build:native
 
             - name: Fix permissions
               run: |
                   sudo chown -R $USER:$USER apps/desktop/.hak
                   sudo chmod +x node_modules/7zip-bin/linux/*/7za
+
+            - name: Check native libraries in hak dependencies
+              working-directory: apps/desktop
+              run: |
+                  shopt -s globstar
+                  for filename in ./.hak/hakModules/**/*.node; do
+                      ./scripts/glibc-check.sh $filename
+                  done
 
             - name: Build App
               working-directory: apps/desktop
