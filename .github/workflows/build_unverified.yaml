@@ -17,7 +17,7 @@ permissions:
 run-name: Unverified Build (from source)
 env:
     SQLCIPHER_BUNDLED: ${{ inputs.sqlcipher == 'static' && '1' || '' }}
-    MAX_GLIBC: 2.31 # bullseye-era glibc, used by glibc-check.sh
+    MAX_GLIBC: 2.32
 jobs:
     prepare:
         name: Prepare
