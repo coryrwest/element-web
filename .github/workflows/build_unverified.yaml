@@ -15,6 +15,9 @@ on:
 permissions:
     contents: read
 run-name: Unverified Build (from source)
+env:
+    SQLCIPHER_BUNDLED: ${{ inputs.sqlcipher == 'static' && '1' || '' }}
+    MAX_GLIBC: 2.31 # bullseye-era glibc, used by glibc-check.sh
 jobs:
     prepare:
         name: Prepare
@@ -78,7 +81,6 @@ jobs:
         env:
             SQLCIPHER_BUNDLED: "1"
             HAK_DOCKER_IMAGE: ghcr.io/element-hq/element-web/desktop-build-env:develop
-            MAX_GLIBC: "2.31"
         steps:
             - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
               with:
